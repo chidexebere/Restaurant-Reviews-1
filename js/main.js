@@ -188,8 +188,10 @@ const imageList = DBHelper.imageUrlForRestaurant(restaurant);
 
   const more = document.createElement('button');
   more.innerHTML = 'View Details';
+  more.setAttribute('aria-label', more.innerHTML + " of " + restaurant.name );
   more.addEventListener('click', () => { window.location.href = DBHelper.urlForRestaurant(restaurant); });
   li.append(more)
+  
 
   return li
 }
