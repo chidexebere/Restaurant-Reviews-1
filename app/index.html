@@ -4,7 +4,12 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <meta name="Description" content="Author: Chidiebere Onyegbuchulem, 
+    A Restaurant review app that allows users locate restaurants around them and make reviews.
+    It also works offline">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="img/icons/favicon.png" type="image/png" sizes="16x16">
+  <meta name="theme-color" content="#2196f3" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.3.1/dist/leaflet.css" integrity="sha512-Rksm5RenBEKSKFjgI3a41vrjkw4EVPlJ3+OiI65vTjIdo9brlAacEuKOiQ5OFh7cOI1bkDwLqdLw3Zg0cRJAAQ=="
     crossorigin="" />
   <link href='https://api.tiles.mapbox.com/mapbox-gl-js/v0.49.0/mapbox-gl.css' rel='stylesheet' />
@@ -27,8 +32,9 @@
 
   <main id="maincontent" role="main">
 
-    <section id="map-container" role="application" aria-label="Mapbox Map" aria-hidden="true">
-      <div id="map"></div>
+    <section id="map-container" role="application" aria-label="Map showing restaurant locations"
+      aria-hidden="true">
+        <div id="map"></div>
     </section>
 
     <section id="filter-list-dropdown" role="region" aria-labelledby="filter-label">
