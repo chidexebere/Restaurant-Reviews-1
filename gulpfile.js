@@ -1,7 +1,7 @@
 const gulp = require('gulp');
 const plugins = require('gulp-load-plugins')();
 const responsive = require('gulp-responsive');
-const fs = require('fs');
+const webp = require('gulp-webp');
 const del = require('del');
 const browserify = require('browserify');
 const babelify = require('babelify');
@@ -36,23 +36,38 @@ gulp.task('images', function () {
 				progressive: true,
 				withMetadata: false,
 			}))
+
 		.pipe(gulp.dest('.tmp/img'))
 		.pipe(gulp.dest('dist/img'));
 });
 
-/*Copy fixed images
-gulp.task('fixed-images', function () {
-    return gulp.src('app/img/fixed/**')
-        .pipe(gulp.dest('.tmp/img/fixed'))
-        .pipe(gulp.dest('dist/img/fixed'));
-});*/
+
+// Convet images also to Webp format and saves in dist folder
+gulp.task('webp', () =>
+	gulp.src('.tmp/img/*.jpg')
+		.pipe(webp())
+		.pipe(gulp.dest('dist/img'))
+);
+
+
+// Copy ICONS
+gulp.task('icons', function () {
+	return gulp.src('app/img/icons/**')
+		.pipe(gulp.dest('.tmp/img/icons'))
+		.pipe(gulp.dest('dist/img/icons'));
+});
+
+// Copy manifest
+gulp.task('manifest', function () {
+	return gulp.src('app/manifest.json')
+		.pipe(gulp.dest('.tmp/'))
+		.pipe(gulp.dest('dist/'));
+});
+
 
 // Prep assets for dev
 gulp.task('html', function () {
-	//var apiKey = fs.readFileSync('GM_API_KEY', 'utf8');
-
 	return gulp.src('app/*.html')
-		// .pipe(plugins.stringReplace('<API_KEY_HERE>', apiKey))
 		.pipe(plugins.useref())
 		.pipe(plugins.if('*.css', plugins.autoprefixer()))
 		.pipe(plugins.if('*.js', plugins.babel()))
@@ -72,14 +87,11 @@ gulp.task('html', function () {
 
 // Scan HTML for js & css and optimize them
 gulp.task('html:dist', function () {
-	//var apiKey = fs.readFileSync('GM_API_KEY', 'utf8');
-
 	return gulp.src('app/*.html')
-		// .pipe(plugins.stringReplace('<API_KEY_HERE>', apiKey))
 		.pipe(plugins.size({ title: 'html (before)' }))
 		.pipe(plugins.useref({},
 			lazypipe().pipe(plugins.sourcemaps.init)
-			// lazypipe().pipe(babel) // no coz css
+			// lazypipe().pipe(babel) 
 			// transforms assets before concat
 		))
 		.pipe(plugins.if('*.css', plugins.size({ title: 'styles (before)' })))
@@ -149,7 +161,7 @@ gulp.task('clean:dist', function () {
 
 // Watch files for changes & reload
 gulp.task('serve', function () {
-	runSequence(['clean'], ['images', 'lint', 'html', 'sw'], function () {
+	runSequence(['clean'], ['icons', 'images', 'lint', 'html', 'sw', 'manifest'], function () {
 		browserSync.init({
 			server: '.tmp',
 			port: 8001
@@ -159,6 +171,7 @@ gulp.task('serve', function () {
 		gulp.watch(['app/css/*.css'], ['html', reload]);
 		gulp.watch(['app/js/*.js'], ['lint', 'html', reload]);
 		gulp.watch(['app/sw.js'], ['lint', 'sw', reload]);
+		gulp.watch(['app/manifest.json'], ['manifest', reload]);
 	});
 });
 
@@ -173,9 +186,10 @@ gulp.task('serve:dist', ['default'], function () {
 	gulp.watch(['app/css/*.css'], ['html:dist', reload]);
 	gulp.watch(['app/js/*.js'], ['lint', 'html:dist', reload]);
 	gulp.watch(['app/sw.js'], ['lint', 'sw', reload]);
+	gulp.watch(['app/manifest.json'], ['manifest', reload]);
 });
 
 // Build production files, the default task
 gulp.task('default', ['clean:dist'], function (done) {
-	runSequence(['images', 'lint', 'html:dist', 'sw:dist'], done);
+	runSequence(['icons', 'images', 'webp', 'lint', 'html:dist', 'sw:dist', 'manifest'], done);
 });

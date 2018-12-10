@@ -4,8 +4,7 @@ import idb from 'idb';
 
 /*Install the  service worker and Caches the resources using Cache API*/
 
-const staticCacheName = 'restaurant-static-v25';
-
+const staticCacheName = 'restaurant-static-v52';
 self.addEventListener('install', event => {
 	event.waitUntil(
 		caches.open(staticCacheName)
@@ -25,6 +24,7 @@ self.addEventListener('install', event => {
 					'/restaurant.html?id=8',
 					'/restaurant.html?id=9',
 					'/restaurant.html?id=10',
+					'/img/icons/offline.png',
 				]).catch(error => {
 					console.log('Caches open failed: ' + error);
 				});
@@ -139,7 +139,7 @@ function cacheResponse(request) {
 				});
 		}).catch(error => {
 			if (request.url.includes('.jpg')) {
-				return caches.match('/img/offline_img.png');
+				return caches.match('/img/icons/offline.png');
 			}
 			return new Response(error, {
 				status: 404,

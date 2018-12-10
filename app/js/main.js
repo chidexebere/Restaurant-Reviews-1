@@ -167,15 +167,22 @@ const createRestaurantHTML = (restaurant) => {
 			li.append(image);*/
 
 	const imageList = DBHelper.imageUrlForRestaurant(restaurant);
+	//const imagePictureElement = document.createElement('picture');
+	//const imageSource = document.createElement('source');
 	const image = document.createElement('img');
 	image.className = 'restaurant-img';
+	//imageSource.className = 'restaurant-img';
 	image.srcset = `${imageList.smallWEBP1x} 300w, ${imageList.largeWEBP1x} 400w `;
 	image.srcset = `${imageList.smallJPEG1x} 300w, ${imageList.largeJPEG1x} 400w `;
 	image.src = imageList.smallJPEG1x;
 	image.sizes = '(min-width: 500px) 20vw, 10vw';
 	image.alt = `${restaurant.name} Restaurant`;
 	image.title = `${restaurant.name} Restaurant`;
+	//imagePictureElement.appendChild(imageSource);
+	//imagePictureElement.appendChild(image);
+	//li.append(imagePictureElement);
 	li.append(image);
+	//$('restaurant-img').wrapAll('<picture></picture>');
 
 	const name = document.createElement('h1');
 	name.innerHTML = restaurant.name;

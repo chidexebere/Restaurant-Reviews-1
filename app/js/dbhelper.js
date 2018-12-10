@@ -175,13 +175,13 @@ class DBHelper {
 
 		const imagePath = `./img/${imageID}`;
 		return {
-			//smallWEBP1x: `${imagePath}-sm_1x.webp`,
+			smallWEBP1x: `${imagePath}-300_1x.webp`,
 			smallJPEG1x: `${imagePath}-300_1x.jpg`,
-			//smallWEBP2x: `${imagePath}-sm_2x.webp`,
+			smallWEBP2x: `${imagePath}-600_2x.webp`,
 			smallJPEG2x: `${imagePath}-600_2x.jpg`,
-			//largeWEBP1x: `${imagePath}-lg_1x.webp`,
+			largeWEBP1x: `${imagePath}-400_1x.webp`,
 			largeJPEG1x: `${imagePath}-400_1x.jpg`,
-			//largeWEBP2x: `${imagePath}-lg_2x.webp`,
+			largeWEBP2x: `${imagePath}-800_2x.webp`,
 			largeJPEG2x: `${imagePath}-800_2x.jpg`,
 
 		};
