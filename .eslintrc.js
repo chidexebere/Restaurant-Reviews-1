@@ -35,7 +35,9 @@ module.exports = {
         "no-console": "off",
         "no-unused-vars": "warn",
         "no-undef": "warn",
-        "no-useless-escape": "warn"
+        "no-useless-escape": "warn",
+        "no-fallthrough": "off",
+        "no-case-declarations": "off"
     }
 };
 
