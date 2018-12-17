@@ -100,6 +100,11 @@ nav h1 a {
   width: 100%;
 }
 
+#map-container {
+  position: relative;
+  z-index: 1;
+}
+
 
 /* ====================== Restaurant Filtering ====================== */
 .filter-options {
@@ -287,6 +292,11 @@ nav h1 a {
 }
 
 
+#reviews-header {
+  display: flex;
+  justify-content: space-between;
+}
+
 #reviews-list {
   margin: 0;
   padding: 0;
@@ -332,6 +342,240 @@ nav h1 a {
 }
 
 
+/* ====================== Review Form ====================== */
+#modal {
+  /* position: absolute;
+  left: 10vh;
+  top: 10vh; */
+  /* fix exactly center: https://css-tricks.com/considerations-styling-modal/ */
+  /* begin css tricks */
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  /* end css tricks */
+  /* z-index: -10; */
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  width: 60%;
+  /* height: 80vh; */
+  border: 1px solid #666;
+  border-radius: 5px;
+  opacity: 0;
+  transition: all .3s;
+  overflow: hidden;
+  background-color: #fff;
+  visibility: hidden;
+  display: flex;
+}
+#modal.show {
+  visibility: visible;  
+  opacity: 1;
+  /* z-index: 10; */
+  /* display: flex; */
+}
+.modal-overlay {
+  width: 100%;
+  height: 100%;
+  z-index: 2; /* places the modalOverlay between the main page and the modal dialog */
+  background-color: #000;
+  opacity: 0;
+  transition: all .3s;
+  position: fixed;
+  top: 0;
+  left: 0;
+  display: none;
+  margin: 0;
+  padding: 0;
+}
+.modal-overlay.show {
+  display: block;
+  opacity: 0.5;  
+}
+#modal .close-btn {
+  align-self: flex-end;
+  font-size: 1em;
+  margin: 8px 8px 0;
+  padding: 0 8px;
+  cursor: pointer;
+}
+form {
+  max-width: 900px;
+  padding: 0 20px 20px 20px;
+}
+input,
+select,
+.rate,
+textarea,
+button {
+  border: 1px solid #e5e5e5;
+  border-radius: 3px;
+  box-shadow: inset 0 1px 1px #e1e1e1;
+  font-size: 16px;
+  padding: 8px;
+}
+input[type="radio"] {
+  box-shadow: none;
+}
+button {
+  min-width: 48px;
+  min-height: 48px;
+}
+button:hover {
+  border: 1px solid #ccc;
+  background-color: #fff;
+}
+button#review-add-btn, 
+button.close-btn, 
+button#submit_review_btn {
+  min-height: 40px;
+}
+
+button#review-add-btn {
+  margin-right: 20px;
+  color: #fff;
+  background-color: #666;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+button#submit_review_btn {
+  color:#fff;
+  cursor: pointer;
+  padding: 0 16px;
+  background-color: #0275d8;;
+}
+
+.fieldset {
+  margin-top: 20px;
+}
+.right {
+  align-self: flex-end;
+}
+#review_form_container {
+  width: 100%;
+  /* background-color: #eee; */
+  padding: 0 20px 26px;
+  color: #333;
+  overflow-y: auto;
+}
+#review_form_container h2 {
+  margin: 0 0 0 3px;
+  padding-bottom: 5px;
+}
+#review_form {
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+  border: 1px solid #e5e5e5;
+  border-radius: 4px;
+}
+#review_form label, #review_form input {
+  display: block;
+  /* width: 100%; */
+}
+#review_form label {
+  font-weight: bold;
+  font-size: 16px;
+  margin-bottom: 2px;
+}
+
+#review_form .rate label, #review_form .rate input,
+#review_form .rate1 label, #review_form .rate1 input {
+  display: inline-block;
+}
+/* Modified from: https://codepen.io/tammykimkim/pen/yegZRw */
+.rate {
+  height: 36px;
+  display: inline-flex;
+  flex-direction: row-reverse;
+  align-items: flex-start;
+  justify-content: flex-end;
+  width: 150px;
+}
+#review_form .rate > label {
+  margin-bottom: 0;
+  margin-top: -5px;
+  height: 30px;
+  font-size: 30px;
+
+}
+#reviewName,
+#reviewComments {
+  width:90%;
+}
+.rate:not(:checked) > input {
+  /* position: absolute; */
+  top: -9999px;
+  margin-left: -24px;
+  width: 20px;
+  padding-right: 14px;
+  z-index: -10;
+}
+.rate:not(:checked) > label {
+  float:right;
+  width:1em;
+  overflow:hidden;
+  white-space:nowrap;
+  cursor:pointer;
+  font-size:30px;
+  color:#ccc;
+}
+.rate:not(:checked) > label::before {
+  content: '★ ';
+  position: relative;
+  top: -10px;
+  left: 2px;
+}
+.rate > input:checked ~ label {
+  color: #ffc700;
+}
+.rate > input:checked:focus + label, .rate > input:focus + label {
+  outline: -webkit-focus-ring-color auto 5px;
+}
+.rate:not(:checked) > label:hover,
+.rate:not(:checked) > label:hover ~ label {
+  color: #deb217;
+}
+.rate > input:checked + label:hover,
+.rate > input:checked + label:hover ~ label,
+.rate > input:checked ~ label:hover,
+.rate > input:checked ~ label:hover ~ label,
+.rate > label:hover ~ input:checked ~ label {
+  color: #c59b08;
+}
+#submit-review {
+  align-self: flex-end;
+}
+#offline {
+  position: fixed;
+  align-self: center;
+  justify-self: center;
+  top: -120px;
+  background-color: #f3df84;
+  border-bottom: 1px solid #999;
+  border-left: 1px solid #999;
+  border-right: 1px solid #999;
+  padding: 10px 16px;
+  margin: 0 auto;
+  border-bottom-left-radius: 10px;
+  border-bottom-right-radius: 10px;
+  max-width: 400px;
+  /* transition: visibility .3s ease-in-out, top .3s ease-in-out 1s; */
+  transition: top .3s ease-in-out 1s;
+}
+#offline.show {
+  top: 0;
+}
+#offline h3 {
+  margin: 0 0 6px;
+}
+#offline p {
+  margin: 0 0 10px;
+}
+
+
 /* ====================== Media Querries ====================== */
 
 @media screen and (max-width: 400px) {
@@ -364,7 +608,12 @@ nav h1 a {
   .filter-options select {
     margin-top: 5px
   }
+
+  #modal {
+    width: 80%
+  }
 }
+
 
 
 @media screen and (min-width: 670px) {
@@ -404,6 +653,8 @@ nav h1 a {
     grid-area: footer;
   }
 }
+
+
 
 
 @media screen and (min-width: 1024px) {
