@@ -45,7 +45,8 @@
   "dependencies": {
     "babel-plugin-transform-decorators-legacy": "^1.3.5",
     "babel-preset-es2015": "^6.24.1",
-    "idb": "^2.1.3"
+    "idb": "^2.1.3",
+    "leaflet": "^1.3.4"
   },
   "repository": {
     "type": "git",
