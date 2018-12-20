@@ -1,15 +1,16 @@
-/*Import IDB Promised*/
-
-import idb from 'idb';
+/* eslint-disable no-undef */
+/* eslint-disable no-unused-vars */
 
 /*Install the  service worker and Caches the resources using Cache API*/
 
-const staticCacheName = 'restaurant-static-v52';
+
+const staticCacheName = 'restaurant-static-v114';
 self.addEventListener('install', event => {
 	event.waitUntil(
 		caches.open(staticCacheName)
 			.then(cache => {
 				return cache.addAll([
+					'/',
 					'/index.html',
 					'/css/styles.css',
 					'/js/index.min.js',
@@ -25,12 +26,118 @@ self.addEventListener('install', event => {
 					'/restaurant.html?id=9',
 					'/restaurant.html?id=10',
 					'/img/icons/offline.png',
+					'https://unpkg.com/leaflet@1.3.1/dist/leaflet.css',
+					'https://unpkg.com/leaflet@1.3.1/dist/leaflet.js'
 				]).catch(error => {
 					console.log('Caches open failed: ' + error);
 				});
 			})
 	);
 });
+
+// intercept all requests, return cached asset, idb data, or fetch from network
+let i = 0;
+self.addEventListener('fetch', event => {
+	const request = event.request;
+	const requestUrl = new URL(request.url);
+	if (requestUrl.port === '1337') {
+		if (event.request.method !== 'GET') {
+			console.log('filtering out non-GET method');
+			return;
+		}
+
+		console.log('fetch intercept', ++i, requestUrl.href);
+
+		if (request.url.includes('reviews')) {
+			let id = +requestUrl.searchParams.get('restaurant_id');
+			event.respondWith(idbReviewResponse(request, id));
+		} else {
+			event.respondWith(idbRestaurantResponse(request));
+		}
+	}
+	else {
+		event.respondWith(cacheResponse(request));
+	}
+});
+
+
+//  Get all records from objectStore
+// if more than 1 record then return match
+// if no match then fetch json, write to idb, & return response
+
+let j = 0;
+function idbRestaurantResponse(request, id) {
+	return idbKeyVal.getAll('restaurants')
+		.then(restaurants => {
+			if (restaurants.length) {
+				return restaurants;
+			}
+			return fetch(request)
+				.then(response => response.json())
+				.then(json => {
+					json.forEach(restaurant => {
+						console.log('fetch idb write', ++j, restaurant.id, restaurant.name);
+						idbKeyVal.set('restaurants', restaurant);
+					});
+					return json;
+				});
+		})
+		.then(response => new Response(JSON.stringify(response)))
+		.catch(error => {
+			return new Response(error, {
+				status: 404,
+				statusText: 'my bad request'
+			});
+		});
+}
+
+let k = 0;
+function idbReviewResponse(request, id) {
+	return idbKeyVal.getAllIdx('reviews', 'restaurant_id', id)
+		.then(reviews => {
+			if (reviews.length) {
+				return reviews;
+			}
+			return fetch(request)
+				.then(response => response.json())
+				.then(json => {
+					json.forEach(review => {
+						console.log('fetch idb review write', ++k, review.id, review.name);
+						idbKeyVal.set('reviews', review);
+					});
+					return json;
+				});
+		})
+		.then(response => new Response(JSON.stringify(response)))
+		.catch(error => {
+			return new Response(error, {
+				status: 404,
+				statusText: 'my bad request'
+			});
+		});
+}
+
+function cacheResponse(request) {
+	return caches.match(request, {
+	}).then(response => {
+		return response || fetch(request).then(fetchResponse => {
+			return caches.open(staticCacheName).then(cache => {
+				if (!fetchResponse.url.includes('browser-sync')) {
+					cache.put(request, fetchResponse.clone());
+				}
+				return fetchResponse;
+			});
+		});
+	}).catch(error => {
+		if (request.url.includes('.jpg')) {
+			return caches.match('/img/icons/offline.png');
+		}
+		return new Response(error, {
+			status: 404,
+			statusText: 'Not connected to the internet'
+		});
+	});
+}
 
 
 /* Update a service worker*/
@@ -49,105 +156,6 @@ self.addEventListener('activate', event => {
 		})
 	);
 });
-
-
-
-/* Create Database and Objectstore */
-
-const dbPromise = idb.open('restaurant-db', 1, upgradeDB => {
-	switch (upgradeDB.oldVersion) {
-		case 0:
-			upgradeDB.createObjectStore('restaurants');
-	}
-});
-
-
-/* IndexedDB KeyVal Store */
-// Define idbKeyVal methods 
-
-const idbKeyVal = {
-	get(key) {
-		return dbPromise.then(db => {
-			return db.transaction('restaurants')
-				.objectStore('restaurants').get(key);
-		});
-	},
-
-	set(key, val) {
-		return dbPromise.then(db => {
-			const tx = db.transaction('restaurants', 'readwrite');
-			tx.objectStore('restaurants').put(val, key);
-			return tx.complete;
-		});
-	}
-};
-
-
-
-/* Fetch Resources from Cache and IDB or from the Network (server) */
-
-self.addEventListener('fetch', event => {
-	const request = event.request;
-	const requestUrl = new URL(request.url);
-
-	if (requestUrl.port === '1337') {
-		event.respondWith(idbResponse(request));
-	}
-	else {
-		event.respondWith(cacheResponse(request));
-	}
-});
-
-
-// IDB response 
-
-function idbResponse(request) {
-	return idbKeyVal.get('restaurants')
-		.then(restaurants => {
-			return (restaurants || fetch(request)
-				.then(response => response.json())
-				.then(json => {
-					idbKeyVal.set('restaurants', json);
-					return json;
-				})
-			);
-		})
-		.then(response => new Response(JSON.stringify(response)))
-		.catch(error => {
-			return new Response(error, {
-				status: 404,
-				statusText: 'Bad request'
-			});
-		});
-
-}
-
-// Cache Response 
-
-function cacheResponse(request) {
-	return caches.match(request)
-		.then(response => {
-			return response || fetch(request)
-				.then(fetchResponse => {
-					return caches.open(staticCacheName)
-						.then(cache => {
-							if (!fetchResponse.url.includes('browser-sync')) {
-								cache.put(request, fetchResponse.clone());
-							}
-							return fetchResponse;
-						});
-				});
-		}).catch(error => {
-			if (request.url.includes('.jpg')) {
-				return caches.match('/img/icons/offline.png');
-			}
-			return new Response(error, {
-				status: 404,
-				statusText: 'Not internet connection'
-			});
-		});
-
-}
 
 
 
