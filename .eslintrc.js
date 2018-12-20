@@ -11,7 +11,6 @@ module.exports = {
         "google": false
     },
     "parserOptions": {
-        "ecmaVersion": 2015,
         "sourceType": "module"
     },
     "rules": {
