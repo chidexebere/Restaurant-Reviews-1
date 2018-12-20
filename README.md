@@ -1,7 +1,7 @@
 
-## Restaurant Reviews App Stage 2 
+## Restaurant Reviews App Stage 3 
 
-Stage 2 makes improvements from Stage 1 of the App. It includes a build system that will automatically serve the optimized site from a different data source. It also includes PWA and performance improvements.
+Stage 3 makes improvements from Stage 1 and Stage 2 of the App. It includes a form to allow users to create their own reviews. If the app is offline, the form will defer updating to the remote database until a connection is established. It also includes performance improvements.
 
 
 ### Overview
@@ -9,15 +9,14 @@ Stage 2 makes improvements from Stage 1 of the App. It includes a build system t
 * Restaurant data is pulled from a development server, the JSON response is parsed, and the information is used to render the appropriate sections of the application UI.
 * JSON responses are cached using the IndexedDB API.
 * Gulp build serves the optimized site.
-* The application maintains a responsive design on mobile, tablet and desktop viewports.
-* The client application still works offline with improved PWA capabilities.
-* Accessibility improvements.
-* Performance improvement. 
+* A form to allow users to create their own reviews.
+* The client application still works.
+* Performance improvements. 
 
 
 ## Running using local machine
 
-You will need this Node development server https://github.com/udacity/mws-restaurant-stage-2, follow the instructions on the README for getting the server up and running locally on your computer
+You will need this Node development server https://github.com/udacity/mws-restaurant-stage-3, follow the instructions on the README for getting the server up and running locally on your computer
 
 ###### Install project dependancies
 ```Install project dependancies
