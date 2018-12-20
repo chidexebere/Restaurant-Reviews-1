@@ -1,8 +1,12 @@
 /* eslint-disable no-undef */
 /* eslint-disable no-unused-vars */
+
+
 /**
  * Common database helper functions.
+ * 
  */
+
 class DBHelper {
 
 	/**
@@ -11,30 +15,168 @@ class DBHelper {
    */
 	static get DATABASE_URL() {
 		const port = 1337; // Change this to your server port
-		return `http://localhost:${port}/restaurants`;
+		return `http://localhost:${port}`;
 	}
 
-	/**
-   * Fetch all restaurants.
-   
-	static fetchRestaurants(callback) {
-		let xhr = new XMLHttpRequest();
-		xhr.open('GET', DBHelper.DATABASE_URL);
-		xhr.onload = () => {
-			if (xhr.status === 200) { // Got a success response from server!
-				const json = JSON.parse(xhr.responseText);
-				const restaurants = json.restaurants;
-				callback(null, restaurants);
-			} else { // Oops!. Got an error from server.
-				const error = (`Request failed. Returned status of ${xhr.status}`);
-				callback(error, null);
-			}
+
+
+	// GET
+	// http://localhost:1337/reviews/?restaurant_id=<restaurant_id>
+	static fetchRestaurantReviewsById(id, callback) {
+		fetch(DBHelper.DATABASE_URL + `/reviews/?restaurant_id=${id}`)
+			.then(response => response.json())
+			.then(data => callback(null, data))
+			.catch(err => callback(err, null));
+	}
+
+	// POST
+	// http://localhost:1337/reviews/
+	static createRestaurantReview(restaurant_id, name, rating, comments, callback) {
+		const url = DBHelper.DATABASE_URL + '/reviews/';
+		const headers = { 'Content-Type': 'application/form-data' };
+		const method = 'POST';
+		const data = {
+			restaurant_id: restaurant_id,
+			name: name,
+			rating: +rating,
+			comments: comments
 		};
-		xhr.send();
-	} */
+		const body = JSON.stringify(data);
+		// const body = data;
+
+		fetch(url, {
+			headers: headers,
+			method: method,
+			body: body
+		})
+			.then(response => response.json())
+			.then(data => callback(null, data))
+			.catch(err => {
+				// We are offline...
+				// Save review to local IDB
+				DBHelper.createIDBReview(data)
+					.then(review_key => {
+						// Get review_key and save it with review to offline queue
+						console.log('returned review_key', review_key);
+						DBHelper.addRequestToQueue(url, headers, method, data, review_key)
+							.then(offline_key => console.log('returned offline_key', offline_key));
+					});
+				callback(err, null);
+			});
+	}
+
+
+	static updateIDBRestaurant(restaurant) {
+		return idbKeyVal.set('restaurants', restaurant);
+	}
+
+	static createIDBReview(review) {
+		return idbKeyVal.setReturnId('reviews', review)
+			.then(id => {
+				console.log('Saved to IDB: reviews', review);
+				return id;
+			});
+	}
+
+	static addRequestToQueue(url, headers, method, data, review_key) {
+		const request = {
+			url: url,
+			headers: headers,
+			method: method,
+			data: data,
+			review_key: review_key
+		};
+		return idbKeyVal.setReturnId('offline', request)
+			.then(id => {
+				console.log('Saved to IDB: offline', request);
+				return id;
+			});
+	}
+
+	static processQueue() {
+		// Open offline queue & return cursor
+		dbPromise.then(db => {
+			if (!db) return;
+			const tx = db.transaction(['offline'], 'readwrite');
+			const store = tx.objectStore('offline');
+			return store.openCursor();
+		})
+			.then(function nextRequest(cursor) {
+				if (!cursor) {
+					console.log('cursor done.');
+					return;
+				}
+				console.log('cursor', cursor.value.data.name, cursor.value.data);
+
+				const offline_key = cursor.key;
+				const url = cursor.value.url;
+				const headers = cursor.value.headers;
+				const method = cursor.value.method;
+				const data = cursor.value.data;
+				const review_key = cursor.value.review_key;
+				const body = JSON.stringify(data);
+
+				// update server with HTTP POST request & get updated record back        
+				fetch(url, {
+					headers: headers,
+					method: method,
+					body: body
+				})
+					.then(response => response.json())
+					.then(data => {
+						// data is the returned record
+						console.log('Received updated record from DB Server', data);
+
+						// 1. Delete http request record from offline store
+						dbPromise.then(db => {
+							const tx = db.transaction(['offline'], 'readwrite');
+							tx.objectStore('offline').delete(offline_key);
+							return tx.complete;
+						})
+							.then(() => {
+								// test if this is a review or favorite update
+								if (review_key === undefined) {
+									console.log('Favorite posted to server.');
+								} else {
+									// 2. Add new review record to reviews store
+									// 3. Delete old review record from reviews store 
+									dbPromise.then(db => {
+										const tx = db.transaction(['reviews'], 'readwrite');
+										return tx.objectStore('reviews').put(data)
+											.then(() => tx.objectStore('reviews').delete(review_key))
+											.then(() => {
+												console.log('tx complete reached.');
+												return tx.complete;
+											})
+											.catch(err => {
+												tx.abort();
+												console.log('transaction error: tx aborted', err);
+											});
+									})
+										.then(() => console.log('review transaction success!'))
+										.catch(err => console.log('reviews store error', err));
+								}
+							})
+							.then(() => console.log('offline rec delete success!'))
+							.catch(err => console.log('offline store error', err));
+
+					}).catch(err => {
+						console.log('fetch error. we are offline.');
+						console.log(err);
+						return;
+					});
+				return cursor.continue().then(nextRequest);
+			})
+			.then(() => console.log('Done cursoring'))
+			.catch(err => console.log('Error opening cursor', err));
+	}
+
+	// GET
+	// http://localhost:1337/restaurants/
+
 
 	static fetchRestaurants(callback) {
-		fetch(DBHelper.DATABASE_URL)
+		fetch(DBHelper.DATABASE_URL + '/restaurants')
 			.then(response => {
 				if (!response.ok) {
 					throw Error(`Request failed. Returned status of ${response.statusText}`);
@@ -48,6 +190,10 @@ class DBHelper {
 
 	}
 
+
+
+	// GET
+	// http://localhost:1337/restaurants/
 
 	/**
    * Fetch a restaurant by its ID.
@@ -68,6 +214,8 @@ class DBHelper {
 		});
 	}
 
+	// GET
+	// http://localhost:1337/restaurants/
 	/**
    * Fetch restaurants by a cuisine type with proper error handling.
    */
@@ -84,6 +232,8 @@ class DBHelper {
 		});
 	}
 
+	// GET
+	// http://localhost:1337/restaurants/
 	/**
    * Fetch restaurants by a neighborhood with proper error handling.
    */
@@ -166,10 +316,7 @@ class DBHelper {
 
 	/**
    * Restaurant image URL.
-  
-  static imageUrlForRestaurant(restaurant) {
-    return (`/img/${restaurant.photograph}`);
-  } */
+   */
 	static imageUrlForRestaurant(restaurant) {
 		const imageID = restaurant.id;
 
@@ -216,3 +363,5 @@ class DBHelper {
 
 }
 
+// export default DBHelper;
+window.DBHelper = DBHelper;

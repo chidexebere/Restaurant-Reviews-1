@@ -1,11 +1,13 @@
 /* eslint-disable no-undef */
 /* eslint-disable no-unused-vars */
 // eslint-disable-next-line no-unused-vars
+
 let restaurants,
 	neighborhoods,
 	cuisines;
-var newMap;
-var markers = [];
+let newMap;
+let markers = [];
+
 
 /**
  * Fetch neighborhoods and cuisines as soon as the page is loaded.
@@ -184,7 +186,7 @@ const createRestaurantHTML = (restaurant) => {
 	li.append(image);
 	//$('restaurant-img').wrapAll('<picture></picture>');
 
-	const name = document.createElement('h1');
+	const name = document.createElement('h2');
 	name.innerHTML = restaurant.name;
 	li.append(name);
 
