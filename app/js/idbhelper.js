@@ -1,13 +1,16 @@
-/* eslint-disable indent */
 import idb from 'idb';
+//import idbKeyVal from 'idb-keyval';
+/* eslint-disable indent */
 
 const dbPromise = idb.open('restaurant-db', 3, upgradeDB => {
     switch (upgradeDB.oldVersion) {
         case 0:
-            upgradeDB.createObjectStore('restaurants', { keyPath: 'id', unique: true });
+            //upgradeDB.createObjectStore('restaurants', { keyPath: 'id', unique: true });
+            upgradeDB.createObjectStore('restaurants', { keyPath: '_id', unique: true });
         case 1:
             const reviewStore = upgradeDB.createObjectStore('reviews', { autoIncrement: true });
-            reviewStore.createIndex('restaurant_id', 'restaurant_id');
+            //reviewStore.createIndex('restaurant_id', 'restaurant_id');
+            reviewStore.createIndex('restaurant_id', '_parent_id');
         case 2:
             upgradeDB.createObjectStore('offline', { autoIncrement: true });
     }
@@ -74,10 +77,30 @@ const idbKeyVal = {
                 .objectStore(store)
                 .openCursor();
         });
+    },
+    openCursorIdxByKey(store, idx, key) {
+        return dbPromise.then(db => {
+            return db.transaction(store, 'readwrite')
+                .objectStore(store)
+                .index(idx)
+                .openCursor(key);
+        });
     }
 };
 self.idbKeyVal = idbKeyVal;
 
+
+// Shared code goes here since this file get included on all pages...
+// Shared methods below...
+// const wait = function (ms) {
+//     return new Promise(function (resolve, reject) {
+//         window.setTimeout(function () {
+//             resolve(ms);
+//             reject(ms);
+//         }, ms);
+//     });
+// };
+// self.wait = wait;
 
 // Get the Offline modal
 const offModal = document.getElementById('myModal');

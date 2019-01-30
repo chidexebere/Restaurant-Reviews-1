@@ -13,6 +13,8 @@ const buffer = require('vinyl-buffer');
 const runSequence = require('run-sequence');
 const lazypipe = require('lazypipe');
 const browserSync = require('browser-sync').create();
+require('dotenv').config();
+const RESTDB_API_KEY = process.env.RESTDB_API_KEY;
 
 const reload = browserSync.reload;
 
@@ -150,6 +152,7 @@ gulp.task('dbhelper', function () {
 		.bundle()               // concat
 		.pipe(source('dbhelper.min.js'))  // get text stream w/ destination filename
 		.pipe(buffer())         // required to use stream w/ other plugins
+		.pipe(plugins.stringReplace('<RESTDB_API_KEY>', RESTDB_API_KEY))
 		.pipe(gulp.dest('.tmp/js/'));
 });
 
@@ -190,7 +193,10 @@ gulp.task('scripts2', function () {
 
 // Optimize Service Worker
 gulp.task('sw:dist', function () {
-	let bundler = browserify('./app/sw.js', { debug: true }); // ['1.js', '2.js']
+	let bundler = browserify([
+		'./app/js/idbhelper.js',
+		'./app/sw.js'
+	], { debug: true }); // ['1.js', '2.js']
 
 	return bundler
 		.transform(babelify, { sourceMaps: true })  // required for 'import'
@@ -217,6 +223,7 @@ gulp.task('dbhelper:dist', function () {
 		.bundle()               // concat
 		.pipe(source('dbhelper.min.js'))  // get text stream w/ destination filename
 		.pipe(buffer())         // required to use stream w/ other plugins
+		.pipe(plugins.stringReplace('<RESTDB_API_KEY>', RESTDB_API_KEY))
 		.pipe(plugins.size({ title: 'DBHelper (before)' }))
 		.pipe(plugins.sourcemaps.init({ loadMaps: true }))
 		.pipe(plugins.uglifyEs.default())         // minify

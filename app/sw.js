@@ -4,7 +4,7 @@
 /*Install the  service worker and Caches the resources using Cache API*/
 
 
-const staticCacheName = 'restaurant-static-v114';
+const staticCacheName = 'restaurant-static-138';
 self.addEventListener('install', event => {
 	event.waitUntil(
 		caches.open(staticCacheName)
@@ -15,16 +15,16 @@ self.addEventListener('install', event => {
 					'/css/styles.css',
 					'/js/index.min.js',
 					'/js/restaurant.min.js',
-					'/restaurant.html?id=1',
-					'/restaurant.html?id=2',
-					'/restaurant.html?id=3',
-					'/restaurant.html?id=4',
-					'/restaurant.html?id=5',
-					'/restaurant.html?id=6',
-					'/restaurant.html?id=7',
-					'/restaurant.html?id=8',
-					'/restaurant.html?id=9',
-					'/restaurant.html?id=10',
+					'/restaurant.html?id=5c4135fb265cf113000008d3',
+					'/restaurant.html?id=5c41379e265cf113000008dd',
+					'/restaurant.html?id=5c415383265cf11300000979',
+					'/restaurant.html?id=5c4153e6265cf1130000097c',
+					'/restaurant.html?id=5c4155e3265cf1130000098a',
+					'/restaurant.html?id=5c4156c7265cf11300000994',
+					'/restaurant.html?id=5c4157ca265cf1130000099b',
+					'/restaurant.html?id=5c41646b265cf113000009d7',
+					'/restaurant.html?id=5c4164df265cf113000009db',
+					'/restaurant.html?id=5c41659d265cf113000009e1',
 					'/img/icons/offline.png',
 					'https://unpkg.com/leaflet@1.3.1/dist/leaflet.css',
 					'https://unpkg.com/leaflet@1.3.1/dist/leaflet.js'
@@ -40,16 +40,24 @@ let i = 0;
 self.addEventListener('fetch', event => {
 	const request = event.request;
 	const requestUrl = new URL(request.url);
-	if (requestUrl.port === '1337') {
+
+	// filter Ajax Requests
+	//if (requestUrl.port === '1337') {
+
+	if (requestUrl.host.includes('restaurant-0912.restdb.io')) {
+		console.log('intercept db fetch', ++i);
+		// Only cache GET methods
 		if (event.request.method !== 'GET') {
 			console.log('filtering out non-GET method');
 			return;
 		}
 
-		console.log('fetch intercept', ++i, requestUrl.href);
+		//console.log('fetch intercept', ++i, requestUrl.href);
 
 		if (request.url.includes('reviews')) {
-			let id = +requestUrl.searchParams.get('restaurant_id');
+			//let id = +requestUrl.searchParams.get('restaurant_id');
+			const queryObj = JSON.parse(requestUrl.searchParams.get('q'));
+			const id = queryObj._parent_id;
 			event.respondWith(idbReviewResponse(request, id));
 		} else {
 			event.respondWith(idbRestaurantResponse(request));

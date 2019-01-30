@@ -6,3 +6,11 @@ node_modules/
 build/
 dist/
 .tmp/
+
+# dotenv environment variables file
+.env
+
+#Firebase
+.firebase/
+.firebaserc
+firebase.json

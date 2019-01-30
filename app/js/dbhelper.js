@@ -14,16 +14,26 @@ class DBHelper {
    * Change this to restaurants.json file location on your server.
    */
 	static get DATABASE_URL() {
-		const port = 1337; // Change this to your server port
-		return `http://localhost:${port}`;
+		//const port = 1337; // Change this to your server port
+		//return `http://localhost:${port}`;
+		return 'https://restaurant-0912.restdb.io/rest';
 	}
 
+	static get DB_HEADERS() {
+		return {
+			'x-apikey': '<RESTDB_API_KEY>',
+			'Content-Type': 'application/json',
+			'Cache-Control': 'no-cache'
+		};
+	}
 
 
 	// GET
 	// http://localhost:1337/reviews/?restaurant_id=<restaurant_id>
-	static fetchRestaurantReviewsById(id, callback) {
-		fetch(DBHelper.DATABASE_URL + `/reviews/?restaurant_id=${id}`)
+	static fetchRestaurantReviewsById(restaurant_id, callback) {
+		//fetch(DBHelper.DATABASE_URL + `/reviews/?restaurant_id=${id}`)
+		const url = `${DBHelper.DATABASE_URL}/reviews?q={"_parent_id":"${restaurant_id}"}&metafields=true`;
+		fetch(url, { headers: DBHelper.DB_HEADERS })
 			.then(response => response.json())
 			.then(data => callback(null, data))
 			.catch(err => callback(err, null));
@@ -32,17 +42,19 @@ class DBHelper {
 	// POST
 	// http://localhost:1337/reviews/
 	static createRestaurantReview(restaurant_id, name, rating, comments, callback) {
-		const url = DBHelper.DATABASE_URL + '/reviews/';
-		const headers = { 'Content-Type': 'application/form-data' };
+		//const url = DBHelper.DATABASE_URL + '/reviews/';
+		//const headers = { 'Content-Type': 'application/form-data' };
+		const url = `${DBHelper.DATABASE_URL}/restaurants/${restaurant_id}/reviews`;
+		console.log(url);
+		const headers = DBHelper.DB_HEADERS;
 		const method = 'POST';
 		const data = {
-			restaurant_id: restaurant_id,
 			name: name,
 			rating: +rating,
 			comments: comments
 		};
 		const body = JSON.stringify(data);
-		// const body = data;
+
 
 		fetch(url, {
 			headers: headers,
@@ -54,12 +66,88 @@ class DBHelper {
 			.catch(err => {
 				// We are offline...
 				// Save review to local IDB
+				data._parent_id = restaurant_id; // Add this to provide IDB foreign key
 				DBHelper.createIDBReview(data)
 					.then(review_key => {
 						// Get review_key and save it with review to offline queue
 						console.log('returned review_key', review_key);
-						DBHelper.addRequestToQueue(url, headers, method, data, review_key)
+						DBHelper.addRequestToQueue(url, headers, method, body, review_key)
 							.then(offline_key => console.log('returned offline_key', offline_key));
+					});
+				callback(err, null);
+			});
+	}
+
+	//PUT
+	// http://localhost:1337/reviews/
+	static updateRestaurantReview(review_id, restaurant_id, name, rating, comments, callback) {
+		const url = `${DBHelper.DATABASE_URL}/reviews/${review_id}`;
+		console.log(url);
+		const method = 'PUT';
+		const headers = DBHelper.DB_HEADERS;
+
+		const data = {
+			name: name,
+			rating: +rating,
+			comments: comments
+		};
+		const body = JSON.stringify(data);
+
+		fetch(url, {
+			headers: headers,
+			method: method,
+			body: body
+		})
+			.then(response => response.json())
+			.then(data => callback(null, data))
+			.catch(err => {
+				// We are offline...
+				// Save review to local IDB
+				data._id = review_id;
+				data._parent_id = restaurant_id; // Add this to provide IDB foreign key
+				// create review object (since it's not coming back from DB)
+				const nowDate = new Date();
+				const review = {
+					name: name,
+					rating: +rating,
+					comments: comments,
+					_changed: nowDate.toISOString()
+				};
+				DBHelper.updateIDBReview(review_id, restaurant_id, review)
+					.then((review_key) => {
+						// Get review_key and save it with review to offline queue
+						console.log('Update review to queue: returned review_key', review_key);
+						DBHelper.addRequestToQueue(url, headers, method, body, review_key)
+							.then(offline_key => console.log('returned offline_key', offline_key));
+					});
+				callback(err, null);
+			});
+	}
+
+
+	static deleteRestaurantReview(review_id, restaurant_id, callback) {
+		const url = `https://restaurant-0912.restdb.io/rest/reviews/${review_id}`;
+		const method = 'DELETE';
+		const headers = DBHelper.DB_HEADERS;
+
+		fetch(url, {
+			headers: headers,
+			method: method
+		})
+			.then(response => response.json())
+			.then(data => callback(null, data))
+			.catch(err => {
+				// We are offline...
+				// Delete from  local IDB
+				console.log('what err:', err);
+				DBHelper.delIDBReview(review_id, restaurant_id)
+					.then(() => {
+						// add request to queue
+						console.log('Add delete review request to queue');
+						console.log(`DBHelper.addRequestToQueue(${url}, ${headers}, ${method}, '')`);
+						DBHelper.addRequestToQueue(url, headers, method)
+							.then(offline_key => console.log('returned offline_key', offline_key));
+						// console.log('implement offline for delete review');
 					});
 				callback(err, null);
 			});
@@ -77,6 +165,44 @@ class DBHelper {
 				return id;
 			});
 	}
+
+	static updateIDBReview(review_id, restaurant_id, review) {
+		return idbKeyVal.openCursorIdxByKey('reviews', 'restaurant_id', restaurant_id)
+			.then(function nextCursor(cursor) {
+				if (!cursor) return;
+				var updateData = cursor.value;
+				// console.log(cursor.value.name);
+				if (cursor.value._id === review_id) {
+					console.log('Local IDB review record matched for update');
+
+					updateData.name = review.name;
+					updateData.rating = review.rating;
+					updateData.comments = review.comments;
+					updateData._changed = review._changed;
+					cursor.update(updateData);
+					console.log('heres the primary key:', cursor.primaryKey);
+					return cursor.primaryKey;
+				}
+				return cursor.continue().then(nextCursor);
+			});
+	}
+
+
+	static delIDBReview(review_id, restaurant_id) {
+		return idbKeyVal.openCursorIdxByKey('reviews', 'restaurant_id', restaurant_id)
+			.then(function nextCursor(cursor) {
+				if (!cursor) return;
+				console.log(cursor.value.name);
+				if (cursor.value._id === review_id) {
+					console.log('we matched');
+					cursor.delete();
+					return;
+				}
+				return cursor.continue().then(nextCursor);
+			});
+	}
+
+
 
 	static addRequestToQueue(url, headers, method, data, review_key) {
 		const request = {
@@ -106,7 +232,8 @@ class DBHelper {
 					console.log('cursor done.');
 					return;
 				}
-				console.log('cursor', cursor.value.data.name, cursor.value.data);
+				//console.log('cursor', cursor.value.data.name, cursor.value.data);
+				console.log('cursor.value', cursor.value);
 
 				const offline_key = cursor.key;
 				const url = cursor.value.url;
@@ -114,7 +241,8 @@ class DBHelper {
 				const method = cursor.value.method;
 				const data = cursor.value.data;
 				const review_key = cursor.value.review_key;
-				const body = JSON.stringify(data);
+				//const body = JSON.stringify(data);
+				const body = data;
 
 				// update server with HTTP POST request & get updated record back        
 				fetch(url, {
@@ -176,7 +304,10 @@ class DBHelper {
 
 
 	static fetchRestaurants(callback) {
-		fetch(DBHelper.DATABASE_URL + '/restaurants')
+		//fetch(DBHelper.DATABASE_URL + '/restaurants')
+		fetch(DBHelper.DATABASE_URL + '/restaurants?metafields=true', {
+			headers: DBHelper.DB_HEADERS
+		})
 			.then(response => {
 				if (!response.ok) {
 					throw Error(`Request failed. Returned status of ${response.statusText}`);
@@ -204,7 +335,7 @@ class DBHelper {
 			if (error) {
 				callback(error, null);
 			} else {
-				const restaurant = restaurants.find(r => r.id == id);
+				const restaurant = restaurants.find(r => r._id == id);
 				if (restaurant) { // Got the restaurant
 					callback(null, restaurant);
 				} else { // Restaurant does not exist in the database
@@ -311,14 +442,14 @@ class DBHelper {
    * Restaurant page URL.
    */
 	static urlForRestaurant(restaurant) {
-		return (`./restaurant.html?id=${restaurant.id}`);
+		return (`./restaurant.html?id=${restaurant._id}`);
 	}
 
 	/**
    * Restaurant image URL.
    */
 	static imageUrlForRestaurant(restaurant) {
-		const imageID = restaurant.id;
+		const imageID = restaurant.photograph;
 
 		const imagePath = `./img/${imageID}`;
 		return {

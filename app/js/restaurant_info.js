@@ -74,7 +74,7 @@ const fetchRestaurantFromURL = (callback) => {
 	}
 	const id = getParameterByName('id');
 	if (!id) { // no id found in URL
-		error = 'No restaurant id in URL';
+		const error = 'No restaurant id in URL';
 		callback(error, null);
 	}
 	else {
@@ -122,7 +122,7 @@ const fillRestaurantHTML = (restaurant = self.restaurant) => {
 
 
 	// fill reviews
-	DBHelper.fetchRestaurantReviewsById(restaurant.id, fillReviewsHTML);
+	DBHelper.fetchRestaurantReviewsById(restaurant._id, fillReviewsHTML);
 };
 
 
@@ -181,8 +181,12 @@ const fillReviewsHTML = (error, reviews) => {
 	const ul = document.getElementById('reviews-list');
 	ul.innerHTML = '';
 	reviews.reverse();
+
+	//reviews.forEach(review => {
+	//ul.appendChild(createReviewHTML(review));
+	let i = 0;
 	reviews.forEach(review => {
-		ul.appendChild(createReviewHTML(review));
+		ul.appendChild(createReviewHTML(review, ++i));
 	});
 	container.appendChild(ul);
 };
@@ -191,8 +195,10 @@ const fillReviewsHTML = (error, reviews) => {
 /**
  * Create review HTML and add it to the webpage.
  */
-const createReviewHTML = (review) => {
+//const createReviewHTML = (review) => {
+const createReviewHTML = (review, i) => {
 	const li = document.createElement('li');
+
 	const name = document.createElement('p');
 	name.classList.add('reviewerName');
 	name.innerHTML = review.name;
@@ -200,18 +206,25 @@ const createReviewHTML = (review) => {
 
 	const createdAt = document.createElement('p');
 	createdAt.classList.add('createdAt');
-	const createdDate = review.createdAt ? new Date(review.createdAt).toLocaleDateString() : 'Pending';
+	//const createdDate = review.createdAt ? new Date(review.createdAt).toLocaleDateString() : 'Pending';
+	const createdDate = review._created ?
+		new Date(review._created).toLocaleDateString() :
+		'Pending';
 	createdAt.innerHTML = `Added:${createdDate}`;
 	li.appendChild(createdAt);
 
-	// if (review.updatedAt > review.createdAt) 
+	if (review._changed > review._created) {
 
-	const updatedAt = document.createElement('p');
-	const updatedDate = review.updatedAt ? new Date(review.updatedAt).toLocaleDateString() : 'Pending';
-	updatedAt.innerHTML = `Updated:${updatedDate}`;
-	updatedAt.classList.add('updatedAt');
-	li.appendChild(updatedAt);
-
+		const updatedAt = document.createElement('p');
+		//const updatedDate = review.updatedAt ? new Date(review.updatedAt).toLocaleDateString() : 'Pending';
+		const updatedDate = review._changed ?
+			new Date(review._changed).toLocaleTimeString('en-US', { hour: 'numeric', minute: 'numeric' }) + ', ' +
+			new Date(review._changed).toLocaleDateString({ month: '2-digit', day: '2-digit', year: 'numeric' }) :
+			'Pending';
+		updatedAt.innerHTML = `Updated:${updatedDate}`;
+		updatedAt.classList.add('updatedAt');
+		li.appendChild(updatedAt);
+	}
 
 	const rating = document.createElement('p');
 	rating.classList.add('rating');
@@ -273,7 +286,7 @@ const openModal = () => {
 
 	// submit form
 	const form = document.getElementById('review_form');
-	form.addEventListener('submit', saveAddReview, false);
+	form.addEventListener('submit', addReview, false);
 
 	// Find all focusable children
 	let focusableElementsString = 'a[href], area[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), button:not([disabled]), iframe, object, embed, [tabindex="0"], [contenteditable]';
@@ -290,9 +303,16 @@ const openModal = () => {
 
 	// Focus first child
 	// firstTabStop.focus();
-	const reviewName = document.getElementById('reviewName');
+	//const reviewName = document.getElementById('reviewName');
+	//setTimeout(() => {
+	//reviewName.focus();
+	//}, 200);
+
+
+	// Focus second child
 	setTimeout(() => {
-		reviewName.focus();
+		firstTabStop.focus();
+		focusableElements[1].focus();
 	}, 200);
 
 	function trapTabKey(e) {
@@ -322,37 +342,49 @@ const openModal = () => {
 	}
 };
 
-const saveAddReview = (e) => {
+
+// submit form
+//const form = document.getElementById('review_form');
+//const review_id = e.target.dataset.reviewId;
+//form.dataset.reviewId = review_id;
+//form.addEventListener('submit', addReview, false);
+
+
+const addReview = (e) => {
 	e.preventDefault();
 	const form = e.target;
+
 
 	if (form.checkValidity()) {
 		console.log('is valid');
 
-		const restaurant_id = self.restaurant.id;
+		const restaurant_id = self.restaurant._id;
 		const name = document.querySelector('#reviewName').value;
 		const rating = document.querySelector('input[name=rate]:checked').value;
 		const comments = document.querySelector('#reviewComments').value;
 
 		// attempt save to database server
 		DBHelper.createRestaurantReview(restaurant_id, name, rating, comments, (error, review) => {
-			console.log('got callback');
+			//DBHelper.updateRestaurantReview(review_id, restaurant_id, name, rating, comments, (error, review) => {
+			console.log('got add callback');
 			form.reset();
 			if (error) {
 				console.log('We are offline. Review has been saved to the queue.');
-				// window.location.href = `/restaurant.html?id=${self.restaurant.id}&isOffline=true`;
+				// window.location.href = `/restaurant.html?id=${self.restaurant._id}&isOffline=true`;
 				showOffline();
 			} else {
 				console.log('Received updated record from DB Server', review);
 				DBHelper.createIDBReview(review); // write record to local IDB store
-				// window.location.href = `/restaurant.html?id=${self.restaurant.id}`;
+				//DBHelper.updateIDBReview(review_id, restaurant_id, review);
+
+
 			}
 			idbKeyVal.getAllIdx('reviews', 'restaurant_id', restaurant_id)
 				.then(reviews => {
 					// console.log(reviews);
 					fillReviewsHTML(null, reviews);
 					closeModal();
-					document.getElementById('review-add-btn').focus();
+					//document.getElementById('review-add-btn').focus();
 				});
 		});
 	}
