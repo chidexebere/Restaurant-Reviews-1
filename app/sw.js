@@ -3,7 +3,7 @@
 
 /*Install the  service worker and Caches the resources using Cache API*/
 
-const staticCacheName = "restaurant-static-138";
+const staticCacheName = "restaurant-static-139";
 self.addEventListener("install", event => {
   self.skipWaiting();
   event.waitUntil(
